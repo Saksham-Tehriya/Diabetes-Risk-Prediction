@@ -12,7 +12,7 @@ python train_models.py
 streamlit run app.py
 ```
 
-Training regenerates the model artifacts in `saved_models/` and evaluation outputs in `reports/`. The app loads paths relative to its own file, so it can be started from another working directory too.
+Training regenerates the model artifacts in `saved_models/` and evaluation outputs in `reports/`. The app loads paths relative to its own file, so it can be started from another working directory too. It includes a threshold explorer and a model comparison view.
 
 ## What the pipeline does
 
@@ -21,7 +21,7 @@ Training regenerates the model artifacts in `saved_models/` and evaluation outpu
 3. Compares Logistic Regression, Random Forest, AdaBoost, and a Stacking Ensemble.
 4. Runs stratified five-fold ROC-AUC cross-validation. Imputation, scaling, and SMOTE are kept inside an imbalanced-learn pipeline, so each fold learns preprocessing and resampling from its training portion only.
 5. Selects a model using mean training-fold ROC-AUC, then reports final metrics on the untouched test split. Reports include ROC-AUC, balanced accuracy, precision, recall, specificity, F1, Brier score, confusion matrices, and ROC / precision-recall curves.
-6. Generates a global SHAP summary for the Random Forest and saves the selected prediction pipeline for the app.
+6. Generates a global SHAP summary for the Random Forest, saves the selected prediction pipeline, and exports held-out predictions for the app threshold explorer.
 
 ## Outputs
 
@@ -30,6 +30,7 @@ Training regenerates the model artifacts in `saved_models/` and evaluation outpu
 - `reports/confusion_matrix_*.png` — one confusion matrix per model.
 - `reports/shap_summary.png` and `reports/shap_feature_importance.png` — global model explanation views.
 - `reports/experiment_metadata.json` — seed, dataset size, split, and model-selection rule.
+- `reports/test_predictions.csv` — held-out labels and scores used by the interactive threshold explorer.
 - `saved_models/` — selected pipeline plus the Random Forest explanation artifacts.
 
 ## Suggested presentation walkthrough
@@ -38,8 +39,9 @@ Training regenerates the model artifacts in `saved_models/` and evaluation outpu
 2. Point out the zeros treated as missing and why imputation is fitted inside the pipeline.
 3. Explain why SMOTE is applied only to training folds and never to the held-out test data.
 4. Compare cross-validation stability (mean ± standard deviation) with the one-time test metrics; discuss precision and recall together.
-5. Enter a sample profile in the app, then explain that SHAP describes this model's feature contributions, not causation.
-6. Close with the limits below and possible next steps.
+5. Use the app threshold explorer to discuss how false positives, false negatives, precision, and recall shift as the cutoff changes.
+6. Enter a sample profile in the app, then explain that SHAP describes this model's feature contributions, not causation.
+7. Close with the limits below and possible next steps.
 
 ## Important limitations
 

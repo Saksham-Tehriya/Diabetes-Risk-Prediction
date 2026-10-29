@@ -126,6 +126,9 @@ def main():
     metrics.to_csv(REPORT_DIR / "model_comparison.csv", index=False, float_format="%.4f")
     plot_curves(results, y_test)
     winner = metrics.sort_values("cv_auc_mean", ascending=False).iloc[0]["model"]
+    pd.DataFrame({"actual": y_test.to_numpy(),
+                  "probability": results[winner]["proba"]}).to_csv(
+                      REPORT_DIR / "test_predictions.csv", index=False, float_format="%.6f")
     joblib.dump(results[winner]["pipeline"], MODEL_DIR / "best_model.pkl")
     (MODEL_DIR / "best_model_name.txt").write_text(winner, encoding="utf-8")
 
