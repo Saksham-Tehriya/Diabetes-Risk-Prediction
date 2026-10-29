@@ -1,5 +1,5 @@
-model,accuracy,precision,recall,f1_score,roc_auc,cv_auc_mean,cv_auc_std
-Logistic Regression,0.7143,0.5806,0.6667,0.6207,0.8115,0.8421,0.0171
-Random Forest,0.7273,0.5833,0.7778,0.6667,0.8165,0.88,0.0165
-AdaBoost,0.7468,0.6056,0.7963,0.688,0.8283,0.8515,0.0125
-Stacking Ensemble,0.7468,0.6087,0.7778,0.6829,0.8187,0.8762,0.0154
+model,accuracy,balanced_accuracy,precision,recall,specificity,f1_score,roc_auc,brier_score,cv_auc_mean,cv_auc_std
+AdaBoost,0.7403,0.7531,0.5972,0.7963,0.7100,0.6825,0.8232,0.1934,0.8361,0.0270
+Stacking Ensemble,0.7403,0.7489,0.6000,0.7778,0.7200,0.6774,0.8196,0.1752,0.8434,0.0223
+Random Forest,0.7208,0.7339,0.5753,0.7778,0.6900,0.6614,0.8180,0.1703,0.8387,0.0242
+Logistic Regression,0.7078,0.6941,0.5738,0.6481,0.7400,0.6087,0.8113,0.1836,0.8427,0.0198

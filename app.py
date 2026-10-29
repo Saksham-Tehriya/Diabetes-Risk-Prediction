@@ -24,7 +24,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 
-MODEL_DIR = "saved_models"
+ROOT = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = os.path.join(ROOT, "saved_models")
+REPORT_DIR = os.path.join(ROOT, "reports")
 FEATURE_COLS = [
     "Pregnancies", "Glucose", "BloodPressure", "SkinThickness",
     "Insulin", "BMI", "DiabetesPedigreeFunction", "Age"
@@ -40,9 +42,10 @@ def load_artifacts():
     model = joblib.load(f"{MODEL_DIR}/best_model.pkl")
     rf_model = joblib.load(f"{MODEL_DIR}/rf_model_for_shap.pkl")
     scaler = joblib.load(f"{MODEL_DIR}/scaler.pkl")
+    imputer = joblib.load(f"{MODEL_DIR}/imputer.pkl")
     with open(f"{MODEL_DIR}/best_model_name.txt") as f:
         best_name = f.read().strip()
-    return model, rf_model, scaler, best_name
+    return model, rf_model, imputer, scaler, best_name
 
 
 def risk_gauge(probability):
@@ -73,9 +76,9 @@ def risk_gauge(probability):
     return fig
 
 
-def shap_waterfall_for_patient(rf_model, scaler, patient_df):
+def shap_waterfall_for_patient(rf_model, imputer, scaler, patient_df):
     explainer = shap.TreeExplainer(rf_model)
-    patient_scaled = scaler.transform(patient_df)
+    patient_scaled = scaler.transform(imputer.transform(patient_df))
     patient_scaled_df = pd.DataFrame(patient_scaled, columns=FEATURE_COLS)
     shap_values = explainer.shap_values(patient_scaled_df)
 
@@ -160,19 +163,21 @@ def generate_pdf_report(patient_data, probability, risk_label, top_factors):
 
 
 def main():
-    st.title("🩺 Diabetes Risk Checkup")
+    st.title("🩺 Diabetes Risk Studio")
+    st.markdown("### An explainable machine learning screening demo")
     st.caption(
-        "A predictive diabetes-risk demo — combining a validated ML model, "
-        "clear visual insights, and an explainable, patient-friendly report."
+        "Explore how clinical measurements move a model score, compare model performance, "
+        "and inspect a local SHAP explanation. Built for an ML classroom demonstration."
     )
 
     artifacts = load_artifacts()
     if artifacts is None:
         st.error("No trained model found. Run `python train_models.py` first to generate saved_models/.")
         return
-    model, rf_model, scaler, best_name = artifacts
+    model, rf_model, imputer, scaler, best_name = artifacts
 
-    st.sidebar.header("Patient Inputs")
+    st.sidebar.header("Explore a sample profile")
+    st.sidebar.caption("Adjust measurements, then run the model.")
     pregnancies = st.sidebar.number_input("Pregnancies", 0, 20, 2)
     glucose = st.sidebar.slider("Glucose (mg/dL)", 40, 250, 120)
     blood_pressure = st.sidebar.slider("Blood Pressure (mm Hg)", 30, 140, 70)
@@ -182,7 +187,7 @@ def main():
     dpf = st.sidebar.slider("Diabetes Pedigree Function", 0.0, 2.5, 0.4, step=0.01)
     age = st.sidebar.slider("Age", 15, 100, 33)
 
-    st.sidebar.markdown(f"**Model in use:** {best_name}")
+    st.sidebar.markdown(f"**Selected model:** {best_name}")
     predict_btn = st.sidebar.button("Predict Risk", type="primary")
 
     patient_data = {
@@ -193,22 +198,24 @@ def main():
     patient_df = pd.DataFrame([patient_data])[FEATURE_COLS]
 
     if predict_btn:
-        patient_scaled = scaler.transform(patient_df)
-        probability = model.predict_proba(patient_scaled)[0, 1]
+        probability = model.predict_proba(patient_df)[0, 1]
         risk_label = "High Risk" if probability >= 0.66 else ("Moderate Risk" if probability >= 0.33 else "Low Risk")
 
         col1, col2 = st.columns([1, 1.3])
         with col1:
             st.pyplot(risk_gauge(probability))
-            st.metric("Risk Category", risk_label, f"{probability:.1%} probability")
+            st.metric("Model score", f"{probability:.1%}")
+            st.metric("Demo band", risk_label)
+            st.caption("Bands are illustrative score ranges, not clinical thresholds.")
 
         with col2:
             st.subheader("Why this prediction? (SHAP explanation)")
-            fig = shap_waterfall_for_patient(rf_model, scaler, patient_df)
+            fig = shap_waterfall_for_patient(rf_model, imputer, scaler, patient_df)
             st.pyplot(fig)
 
         # Compute top factors for the PDF
         explainer = shap.TreeExplainer(rf_model)
+        patient_scaled = scaler.transform(imputer.transform(patient_df))
         patient_scaled_df = pd.DataFrame(patient_scaled, columns=FEATURE_COLS)
         shap_values = explainer.shap_values(patient_scaled_df)
         if isinstance(shap_values, list):
@@ -231,13 +238,15 @@ def main():
         st.info("Set patient values in the sidebar and click **Predict Risk** to see results.")
 
     with st.expander("📊 Model performance (from training pipeline)"):
-        if os.path.exists("reports/model_comparison.csv"):
-            st.dataframe(pd.read_csv("reports/model_comparison.csv"))
+        st.caption("Scores use one stratified holdout split. Cross-validation scores are calculated on training folds with preprocessing and resampling inside each fold.")
+        if os.path.exists(os.path.join(REPORT_DIR, "model_comparison.csv")):
+            results = pd.read_csv(os.path.join(REPORT_DIR, "model_comparison.csv"))
+            st.dataframe(results.style.format(precision=3), use_container_width=True)
         col_a, col_b = st.columns(2)
-        if os.path.exists("reports/roc_curves.png"):
-            col_a.image("reports/roc_curves.png", caption="ROC Curves")
-        if os.path.exists("reports/shap_summary.png"):
-            col_b.image("reports/shap_summary.png", caption="Global SHAP Feature Importance")
+        if os.path.exists(os.path.join(REPORT_DIR, "model_curves.png")):
+            col_a.image(os.path.join(REPORT_DIR, "model_curves.png"), caption="ROC and precision–recall curves")
+        if os.path.exists(os.path.join(REPORT_DIR, "shap_summary.png")):
+            col_b.image(os.path.join(REPORT_DIR, "shap_summary.png"), caption="Global SHAP feature effects")
 
 
 if __name__ == "__main__":

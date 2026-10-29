@@ -1,0 +1,18 @@
+{
+  "seed": 42,
+  "rows": 768,
+  "features": [
+    "Pregnancies",
+    "Glucose",
+    "BloodPressure",
+    "SkinThickness",
+    "Insulin",
+    "BMI",
+    "DiabetesPedigreeFunction",
+    "Age"
+  ],
+  "positive_rate": 0.3489583333333333,
+  "test_size": 0.2,
+  "selection_rule": "highest mean stratified training-fold ROC-AUC; test set reserved for final evaluation",
+  "selected_model": "Stacking Ensemble"
+}
